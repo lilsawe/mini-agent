@@ -1,144 +1,165 @@
 # Mini-Agent
 
-一个从零搭建的 AI Agent 学习项目，用 ~300 行 Python 实现完整的 **感知→思考→行动** 循环。
+一个从零实现的轻量级 AI Agent 框架，用少量 Python 代码展示 Agent 的核心工作流：LLM 推理、工具调用、工具结果回传、多轮对话和 CLI 交互。
 
-## 架构
+这个项目定位为学习型实现，而不是对 LangChain、CrewAI 等成熟框架的封装。代码刻意保持简单，方便面试官快速看到 Agent loop、tool registry、function calling 和异步执行的具体实现。
 
+## Highlights
+
+- 从零实现 `perceive -> think -> act -> observe` Agent 循环
+- 基于 DeepSeek 的 OpenAI-compatible function calling
+- 可扩展工具系统：抽象 `Tool` 基类、注册表、统一 JSON Schema 描述
+- 内置 5 个工具：Python 执行、文件读写、计算器、模拟搜索
+- 支持多轮对话上下文和 `/reset` 重置
+- 使用 `asyncio` 封装 LLM 调用和工具执行
+- 带单元测试，覆盖工具注册、计算器安全边界和 Agent tool-call 流程
+
+## Architecture
+
+```text
+User
+  |
+  v
+CLI / REPL
+  |
+  v
+Agent.run()
+  |
+  +--> LLMClient.chat(messages, tools)
+  |       |
+  |       +--> text response ---------------> final answer
+  |       |
+  |       +--> tool_calls
+  |              |
+  |              v
+  |        ToolRegistry.execute()
+  |              |
+  |              v
+  |        tool result messages
+  |              |
+  +--------------+
 ```
-用户输入
-  │
-  ▼
-┌─────────────────────────────────────┐
-│            Agent Loop               │
-│                                     │
-│  ┌──────────┐    ┌──────────────┐   │
-│  │  LLM     │◄───│ Conversation │   │
-│  │ (DeepSeek)│    │  History     │   │
-│  └────┬─────┘    └──────────────┘   │
-│       │                              │
-│       │ text? ──────────► 返回用户   │
-│       │ tool_calls?                  │
-│       ▼                              │
-│  ┌──────────┐                       │
-│  │  Tools   │                       │
-│  │ Registry │                       │
-│  └────┬─────┘                       │
-│       │                              │
-│       │ 工具执行结果                  │
-│       ▼                              │
-│  回到 LLM ←──────────────────────    │
-└─────────────────────────────────────┘
+
+## Project Structure
+
+```text
+.
+├── agent.py              # Core Agent loop and conversation state
+├── llm.py                # DeepSeek/OpenAI-compatible chat client
+├── tools.py              # Tool abstraction, registry, built-in tools
+├── main.py               # CLI entrypoint
+├── tests/                # Unit tests for tools and agent loop
+├── requirements.txt      # Runtime dependency
+├── requirements-dev.txt  # Test dependency
+├── environment.yml       # Optional conda environment
+└── .env.example          # API key template
 ```
 
-## 文件结构
+## Quick Start
 
-| 文件 | 职责 | 行数 |
-|------|------|------|
-| `llm.py` | DeepSeek API 封装，支持 tool calling | ~100 |
-| `tools.py` | 工具抽象基类 + 5 个内置工具 + 注册表 | ~200 |
-| `agent.py` | 核心 Agent 循环 + 对话管理 | ~100 |
-| `main.py` | CLI 入口 + REPL 交互界面 | ~100 |
-| `requirements.txt` | 仅依赖 openai SDK | - |
+### 1. Install dependencies
 
-## 内置工具
-
-| 工具 | 功能 |
-|------|------|
-| `execute_python` | 在子进程中执行 Python 代码 |
-| `read_file` | 读取文件内容 |
-| `write_file` | 写入内容到文件 |
-| `calculator` | 安全地计算数学表达式 |
-| `web_search` | 模拟搜索（可替换为真实 API） |
-
-## 快速开始
-
-### 1. 创建 conda 环境（推荐）
+Using pip:
 
 ```bash
-# 方式 A：一键脚本
-bash setup.sh
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
 
-# 方式 B：手动
+Or using conda:
+
+```bash
 conda env create -f environment.yml
 conda activate mini-agent
 ```
 
-或者用 pip 直接装：
+### 2. Configure API key
 
 ```bash
-pip install -r requirements.txt
+cp .env.example .env
+export DEEPSEEK_API_KEY="your-deepseek-api-key"
 ```
 
-### 2. 设置 API Key
-
-```bash
-export DEEPSEEK_API_KEY="sk-你的key"
-```
-
-### 3. 运行
+### 3. Run the agent
 
 ```bash
 python main.py
 ```
 
-### 4. 试试这些例子
+Example prompts:
 
+```text
+计算 (15 * 23 + sqrt(144)) / 2 的结果
+在当前目录创建一个 hello.py，内容是打印 "Hello Agent"
+读取刚才创建的 hello.py，然后用 Python 执行它
+帮我分析一下：1 米/秒 的风速下，一个半径 5 米的水平轴风力发电机理论功率是多少？用贝茨极限算。
 ```
-You > 计算 (15 * 23 + sqrt(144)) / 2 的结果
-You > 在当前目录创建一个 hello.py，内容是打印 "Hello Agent"
-You > 读取刚才创建的 hello.py，然后用 Python 执行它
-You > 帮我分析一下：1 米/秒 的风速下，一个半径 5 米的水平轴风力发电机理论功率是多少？用贝茨极限算。
+
+## Commands
+
+```text
+/help   Show CLI commands
+/tools  List available tools
+/reset  Clear conversation history
+/quit   Exit the CLI
 ```
 
-## 核心设计决策
+## Tests
 
-### 为什么自己写框架而不是用 LangChain？
+Install development dependencies:
 
-LangChain 抽象层太多，不容易看清 Agent 循环的本质。这个项目把所有核心机制暴露在 ~300 行代码里，你可以直接读到每一步在做什么。
+```bash
+pip install -r requirements-dev.txt
+```
 
-### 为什么用 DeepSeek？
+Run tests:
 
-- API 格式兼容 OpenAI，迁移成本低
-- 支持完整的 function calling
-- 价格便宜，适合学习阶段大量调用
+```bash
+pytest
+```
 
-### 为什么用异步（asyncio）？
+The tests use a fake LLM for the Agent loop, so they do not require a real API key.
 
-真实生产环境的 Agent 系统几乎全是异步的——你需要同时调多个工具、处理流式响应、管理长时间运行的任务。虽然这个 demo 体量不大，但从一开始就用 async 是正确的习惯。
+## Core Design
 
-## Agent 循环详解
+### Agent loop
 
-每次 `agent.run(user_input)` 被调用时：
+`agent.py` keeps the conversation state and repeatedly calls the LLM until it receives a final text response or reaches the iteration limit. When the LLM returns tool calls, the agent executes them through `ToolRegistry` and appends results back into the message history.
 
-1. **重置对话**：messages 设为 `[system_prompt, user_message]`
-2. **调用 LLM**：发送 messages + 工具定义
-3. **判断返回**：
-   - 如果是纯文本 → 返回给用户，结束
-   - 如果有 tool_calls → 执行每个工具，把结果插回 messages，回到步骤 2
-4. **循环上限**：最多 10 次迭代，防止死循环
+### Tool system
 
-关键代码在 `agent.py` 的 `run()` 方法，只有 ~40 行。
+Each tool implements:
 
-## 如何扩展
+- `name`: function name exposed to the LLM
+- `description`: natural-language instruction for when to use it
+- `parameters`: JSON Schema argument definition
+- `execute()`: async implementation
 
-1. **添加新工具**：继承 `Tool` 基类，实现 `name/description/parameters/execute`，注册到 `ToolRegistry`
-2. **添加任务规划**：在 system prompt 中要求 LLM 先输出计划再执行
-3. **添加记忆系统**：把重要信息持久化到文件，跨会话加载
-4. **添加流式输出**：用 `stream=True` 逐 token 显示 LLM 的思考过程
-5. **支持多轮对话**：去掉 `reset()` 调用，让 messages 跨 `run()` 累积
-6. **添加安全确认**：对 write_file 等操作要求用户确认后才执行
+This mirrors OpenAI-compatible function calling while keeping the implementation easy to inspect.
 
-## 与 Claude Agent SDK 的对应关系
+### LLM client
 
-学习这个项目时，可以对照你之前了解的 Claude Agent 架构：
+`llm.py` wraps the OpenAI SDK and points it at DeepSeek's compatible endpoint. The wrapper normalizes model responses into a small `LLMResponse` dataclass so the rest of the project does not depend on SDK-specific response objects.
 
-| Claude Agent | Mini-Agent 对应 |
-|-------------|----------------|
-| 系统提示词 + 用户消息 | `agent.messages` |
-| 工具清单注入 | `tools.list_definitions()` |
-| tool_call 输出 | `LLMResponse.tool_calls` |
-| tool_result 回传 | `messages.append(tool_result)` |
-| 感知→思考→行动循环 | `agent.run()` 中的 for 循环 |
-| 子 Agent 委托 | 未实现（留给你的练习） |
-| Memory 系统 | 未实现（留给你的练习） |
-| 上下文压缩 | 未实现（留给你的练习） |
+## Built-in Tools
+
+| Tool | Purpose |
+| --- | --- |
+| `execute_python` | Runs a self-contained Python snippet in a subprocess |
+| `read_file` | Reads UTF-8 text files with output truncation |
+| `write_file` | Creates or overwrites text files |
+| `calculator` | Evaluates math expressions with a restricted namespace |
+| `web_search` | Simulated search placeholder for demonstrating tool flow |
+
+## Interview Talking Points
+
+- Why implement the Agent loop directly instead of hiding it behind a framework
+- How function calling maps to tool registration and tool result messages
+- Why the project uses async interfaces even though the demo is small
+- How iteration limits and structured error strings prevent simple failure loops
+- Where production hardening would be added: filesystem sandboxing, user confirmation before writes, real search API, streaming output, persistent memory, and observability
+
+## Security Notes
+
+This is a local learning project. `execute_python` runs code in a subprocess, but it is not a full security sandbox. In production, code execution and file writing should be isolated with stricter permissions, path allowlists, resource limits, and explicit user confirmation.

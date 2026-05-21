@@ -74,7 +74,7 @@ class ExecutePythonTool(Tool):
     @property
     def description(self) -> str:
         return (
-            "Execute a Python code snippet in a sandboxed subprocess. "
+            "Execute a Python code snippet in an isolated subprocess. "
             "Use this for calculations, data processing, or any logic that "
             "requires running code. The code must be a complete, self-contained "
             "script. Stdout and stderr are both captured and returned."

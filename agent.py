@@ -12,10 +12,12 @@ Implements the perception → thinking → action cycle:
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from llm import LLMClient, LLMResponse
 from tools import ToolRegistry
+
+if TYPE_CHECKING:
+    from llm import LLMClient
 
 
 # ---------------------------------------------------------------------------
@@ -58,7 +60,7 @@ class Agent:
 
     def __init__(
         self,
-        llm: LLMClient,
+        llm: "LLMClient",
         tools: ToolRegistry,
         max_iterations: int = 10,
         system_prompt: str = SYSTEM_PROMPT,
@@ -85,7 +87,8 @@ class Agent:
         Returns:
             The agent's final text response.
         """
-        self.reset()
+        if not self.messages:
+            self.reset()
         self.messages.append({"role": "user", "content": user_input})
 
         tool_defs = self.tools.list_definitions()

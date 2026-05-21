@@ -7,3 +7,4 @@ dependencies:
   - pip
   - pip:
     - openai>=1.0.0
+    - pytest>=8.0

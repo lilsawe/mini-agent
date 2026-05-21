@@ -79,7 +79,7 @@ async def main() -> None:
         llm = LLMClient()
     except ValueError as e:
         print(f"{Colors.RED}Error: {e}{Colors.RESET}")
-        print("Set your DeepSeek API key:  export DEEPSEEK_API_KEY='sk-...'")
+        print("Set your DeepSeek API key:  export DEEPSEEK_API_KEY='your-deepseek-api-key'")
         sys.exit(1)
 
     tools = create_default_registry()
