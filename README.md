@@ -60,11 +60,11 @@ Agent.run()
 
 ### 1. Install dependencies
 
-Using pip:
+Using conda:
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
+conda create -n mini-agent python=3.11
+conda activate mini-agent
 pip install -e ".[dev]"
 ```
 
