@@ -46,7 +46,7 @@ Agent.run()
 .
 ├── mini_agent/
 │   ├── __init__.py       # Public package exports
-│   ├── __main__.py       # Enables `python -m mini_agent`
+│   ├── __main__.py       # Enables module execution
 │   ├── cli.py            # CLI / REPL entrypoint
 │   ├── agent.py          # Core Agent loop and conversation state
 │   ├── llm.py            # DeepSeek/OpenAI-compatible chat client
@@ -78,7 +78,7 @@ export DEEPSEEK_API_KEY="your-deepseek-api-key"
 ### 3. Run the agent
 
 ```bash
-python -m mini_agent
+mini-agent
 ```
 
 Example prompts:

@@ -1,4 +1,4 @@
-"""Run the Mini-Agent CLI with `python -m mini_agent`."""
+"""Module entrypoint for Mini-Agent."""
 
 import asyncio
 

@@ -4,7 +4,7 @@ Mini-Agent CLI — a minimal but complete AI agent you can run locally.
 
 Usage:
     export DEEPSEEK_API_KEY="your-deepseek-api-key"
-    python -m mini_agent
+    mini-agent
 
 Then type your requests. The agent will use tools (execute code, read/write
 files, calculate, search) to help you. Type /quit to exit, /reset to clear
