@@ -53,9 +53,6 @@ Agent.run()
 │   └── tools.py          # Tool abstraction, registry, built-in tools
 ├── tests/                # Unit tests for tools and agent loop
 ├── pyproject.toml        # Package metadata, console script, pytest config
-├── requirements.txt      # Runtime dependency
-├── requirements-dev.txt  # Development/test dependency
-├── environment.yml       # Optional conda environment
 └── .env.example          # API key template
 ```
 
@@ -68,14 +65,7 @@ Using pip:
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-Or using conda:
-
-```bash
-conda env create -f environment.yml
-conda activate mini-agent
+pip install -e ".[dev]"
 ```
 
 ### 2. Configure API key
@@ -110,12 +100,6 @@ Example prompts:
 ```
 
 ## Tests
-
-Install development dependencies:
-
-```bash
-pip install -r requirements-dev.txt
-```
 
 Run tests:
 
