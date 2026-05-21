@@ -2,8 +2,8 @@ import asyncio
 from dataclasses import dataclass
 from typing import Any
 
-from agent import Agent
-from tools import CalculatorTool, ToolRegistry
+from mini_agent.agent import Agent
+from mini_agent.tools import CalculatorTool, ToolRegistry
 
 
 @dataclass

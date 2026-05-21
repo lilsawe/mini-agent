@@ -1,0 +1,21 @@
+[project]
+name = "mini-agent"
+version = "0.1.0"
+description = "A minimal AI agent framework built from scratch for learning and interviews."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "openai>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+]
+
+[project.scripts]
+mini-agent = "mini_agent.cli:run"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

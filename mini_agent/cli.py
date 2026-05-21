@@ -4,7 +4,7 @@ Mini-Agent CLI — a minimal but complete AI agent you can run locally.
 
 Usage:
     export DEEPSEEK_API_KEY="your-deepseek-api-key"
-    python main.py
+    python -m mini_agent
 
 Then type your requests. The agent will use tools (execute code, read/write
 files, calculate, search) to help you. Type /quit to exit, /reset to clear
@@ -21,12 +21,11 @@ Example session:
 from __future__ import annotations
 
 import asyncio
-import os
 import sys
 
-from llm import LLMClient
-from tools import create_default_registry
-from agent import Agent
+from mini_agent.agent import Agent
+from mini_agent.llm import LLMClient
+from mini_agent.tools import create_default_registry
 
 
 # ---------------------------------------------------------------------------
@@ -129,5 +128,9 @@ async def main() -> None:
         print()
 
 
-if __name__ == "__main__":
+def run() -> None:
     asyncio.run(main())
+
+
+if __name__ == "__main__":
+    run()

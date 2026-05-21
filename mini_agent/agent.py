@@ -14,10 +14,10 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING, Any
 
-from tools import ToolRegistry
+from mini_agent.tools import ToolRegistry
 
 if TYPE_CHECKING:
-    from llm import LLMClient
+    from mini_agent.llm import LLMClient
 
 
 # ---------------------------------------------------------------------------

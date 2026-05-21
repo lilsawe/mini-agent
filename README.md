@@ -44,13 +44,17 @@ Agent.run()
 
 ```text
 .
-├── agent.py              # Core Agent loop and conversation state
-├── llm.py                # DeepSeek/OpenAI-compatible chat client
-├── tools.py              # Tool abstraction, registry, built-in tools
-├── main.py               # CLI entrypoint
+├── mini_agent/
+│   ├── __init__.py       # Public package exports
+│   ├── __main__.py       # Enables `python -m mini_agent`
+│   ├── cli.py            # CLI / REPL entrypoint
+│   ├── agent.py          # Core Agent loop and conversation state
+│   ├── llm.py            # DeepSeek/OpenAI-compatible chat client
+│   └── tools.py          # Tool abstraction, registry, built-in tools
 ├── tests/                # Unit tests for tools and agent loop
+├── pyproject.toml        # Package metadata, console script, pytest config
 ├── requirements.txt      # Runtime dependency
-├── requirements-dev.txt  # Test dependency
+├── requirements-dev.txt  # Development/test dependency
 ├── environment.yml       # Optional conda environment
 └── .env.example          # API key template
 ```
@@ -84,7 +88,7 @@ export DEEPSEEK_API_KEY="your-deepseek-api-key"
 ### 3. Run the agent
 
 ```bash
-python main.py
+python -m mini_agent
 ```
 
 Example prompts:
@@ -125,7 +129,7 @@ The tests use a fake LLM for the Agent loop, so they do not require a real API k
 
 ### Agent loop
 
-`agent.py` keeps the conversation state and repeatedly calls the LLM until it receives a final text response or reaches the iteration limit. When the LLM returns tool calls, the agent executes them through `ToolRegistry` and appends results back into the message history.
+`mini_agent/agent.py` keeps the conversation state and repeatedly calls the LLM until it receives a final text response or reaches the iteration limit. When the LLM returns tool calls, the agent executes them through `ToolRegistry` and appends results back into the message history.
 
 ### Tool system
 
@@ -140,7 +144,7 @@ This mirrors OpenAI-compatible function calling while keeping the implementation
 
 ### LLM client
 
-`llm.py` wraps the OpenAI SDK and points it at DeepSeek's compatible endpoint. The wrapper normalizes model responses into a small `LLMResponse` dataclass so the rest of the project does not depend on SDK-specific response objects.
+`mini_agent/llm.py` wraps the OpenAI SDK and points it at DeepSeek's compatible endpoint. The wrapper normalizes model responses into a small `LLMResponse` dataclass so the rest of the project does not depend on SDK-specific response objects.
 
 ## Built-in Tools
 
