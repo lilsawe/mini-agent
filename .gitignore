@@ -24,6 +24,7 @@ Thumbs.db
 # Environment
 .env
 .env.local
+eval_runs/
 
 # Conda
 .conda/

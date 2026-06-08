@@ -15,6 +15,7 @@ import json
 from typing import TYPE_CHECKING, Any
 
 from mini_agent.tools import ToolRegistry
+from mini_agent.tracing import TraceRecorder, preview
 
 if TYPE_CHECKING:
     from mini_agent.llm import LLMClient
@@ -64,12 +65,14 @@ class Agent:
         tools: ToolRegistry,
         max_iterations: int = 10,
         system_prompt: str = SYSTEM_PROMPT,
+        tracer: TraceRecorder | None = None,
     ):
         self.llm = llm
         self.tools = tools
         self.max_iterations = max_iterations
         self.system_prompt = system_prompt
         self.messages: list[dict[str, Any]] = []
+        self.tracer = tracer
 
     def reset(self) -> None:
         """Clear conversation history, keeping only the system message."""
@@ -90,12 +93,31 @@ class Agent:
         if not self.messages:
             self.reset()
         self.messages.append({"role": "user", "content": user_input})
+        if self.tracer:
+            self.tracer.record("user_message", content_preview=preview(user_input))
 
         tool_defs = self.tools.list_definitions()
 
         for iteration in range(self.max_iterations):
             # --- Step 1: Call the LLM ---
+            start = self.tracer.timer() if self.tracer else None
+            if self.tracer:
+                self.tracer.record(
+                    "llm_request",
+                    iteration=iteration,
+                    message_count=len(self.messages),
+                    tool_count=len(tool_defs),
+                )
             response = await self.llm.chat(self.messages, tools=tool_defs)
+            if self.tracer:
+                self.tracer.record(
+                    "llm_response",
+                    iteration=iteration,
+                    elapsed_ms=self.tracer.elapsed_ms(start or self.tracer.timer()),
+                    has_tool_calls=response.has_tool_calls,
+                    content_preview=preview(response.content or ""),
+                    tool_names=[tc.name for tc in (response.tool_calls or [])],
+                )
 
             # --- Step 2a: LLM returned plain text → we're done ---
             if not response.has_tool_calls and response.content:
@@ -103,6 +125,12 @@ class Agent:
                     "role": "assistant",
                     "content": response.content,
                 })
+                if self.tracer:
+                    self.tracer.record(
+                        "final_response",
+                        iteration=iteration,
+                        content_preview=preview(response.content),
+                    )
                 return response.content
 
             # --- Step 2b: LLM wants to call tools ---
@@ -128,7 +156,25 @@ class Agent:
                 # Execute each tool call and collect results
                 tool_results = []
                 for tc in response.tool_calls:
+                    tool_start = self.tracer.timer() if self.tracer else None
+                    if self.tracer:
+                        self.tracer.record(
+                            "tool_call",
+                            iteration=iteration,
+                            tool_name=tc.name,
+                            arguments=tc.arguments,
+                        )
                     result = await self.tools.execute(tc.name, tc.arguments)
+                    if self.tracer:
+                        self.tracer.record(
+                            "tool_result",
+                            iteration=iteration,
+                            tool_name=tc.name,
+                            elapsed_ms=self.tracer.elapsed_ms(
+                                tool_start or self.tracer.timer()
+                            ),
+                            result_preview=preview(result),
+                        )
                     tool_results.append({
                         "role": "tool",
                         "tool_call_id": tc.id,
@@ -142,9 +188,13 @@ class Agent:
                 continue
 
             # --- Step 2c: LLM returned neither text nor tool calls (edge case) ---
+            if self.tracer:
+                self.tracer.record("empty_model_response", iteration=iteration)
             return "(Agent produced no output — this may indicate an API issue.)"
 
         # --- Max iterations reached ---
+        if self.tracer:
+            self.tracer.record("max_iterations_reached", max_iterations=self.max_iterations)
         return (
             f"Agent stopped after {self.max_iterations} iterations without "
             "producing a final answer. The task may be too complex or the "

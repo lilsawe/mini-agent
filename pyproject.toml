@@ -19,6 +19,7 @@ dev = [
 
 [project.scripts]
 mini-agent = "mini_agent.cli:run"
+mini-agent-eval = "mini_agent.eval:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

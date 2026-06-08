@@ -1,8 +1,8 @@
 # Mini-Agent
 
-一个从零实现的轻量级 AI Agent 框架，用少量 Python 代码展示 Agent 的核心工作流：LLM 推理、工具调用、工具结果回传、多轮对话和 CLI 交互。
+一个从零实现的轻量级 AI Agent Runtime，用少量 Python 代码展示 Agent 的核心工作流：LLM 推理、工具调用、工具结果回传、多轮对话、CLI 交互，以及 Agent 行为 tracing / eval。
 
-这个项目定位为学习型实现，而不是对 LangChain、CrewAI 等成熟框架的封装。代码刻意保持简单，方便面试官快速看到 Agent loop、tool registry、function calling 和异步执行的具体实现。
+这个项目不是对 LangChain、CrewAI 等成熟框架的封装。代码刻意保持可读，方便快速看到 Agent loop、tool registry、function calling、异步执行、JSONL trace 和 evaluation harness 的具体实现。
 
 ## Highlights
 
@@ -12,7 +12,9 @@
 - 内置 5 个工具：Python 执行、文件读写、计算器、模拟搜索
 - 支持多轮对话上下文和 `/reset` 重置
 - 使用 `asyncio` 封装 LLM 调用和工具执行
-- 带单元测试，覆盖工具注册、计算器安全边界和 Agent tool-call 流程
+- JSONL tracing：记录 user message、LLM request/response、tool_call、tool_result、final_response
+- Evaluation harness：用 JSONL 任务集评估工具调用链路，输出 JSON + Markdown 报告
+- 带单元测试，覆盖工具注册、计算器安全边界、Agent tool-call、tracing 和 eval 流程
 
 ## Architecture
 
@@ -49,8 +51,11 @@ Agent.run()
 │   ├── __main__.py       # Enables module execution
 │   ├── cli.py            # CLI / REPL entrypoint
 │   ├── agent.py          # Core Agent loop and conversation state
+│   ├── eval.py           # Tool-calling eval runner
 │   ├── llm.py            # DeepSeek/OpenAI-compatible chat client
-│   └── tools.py          # Tool abstraction, registry, built-in tools
+│   ├── tools.py          # Tool abstraction, registry, built-in tools
+│   └── tracing.py        # JSONL trace recorder
+├── evals/                # JSONL eval task sets
 ├── tests/                # Unit tests for tools and agent loop
 ├── pyproject.toml        # Package metadata, console script, pytest config
 └── .env.example          # API key template
@@ -99,6 +104,35 @@ Example prompts:
 /quit   Exit the CLI
 ```
 
+## Agent Eval & Tracing
+
+Run the offline evaluation pipeline:
+
+```bash
+mini-agent-eval --offline --tasks evals/tool_call_tasks.jsonl --out-dir eval_runs
+```
+
+Offline mode uses a deterministic scripted LLM, so it does not need an API key.
+It is useful for validating the Agent runtime, tool execution, trace capture,
+and report generation. To evaluate a real model, omit `--offline` after setting
+`DEEPSEEK_API_KEY`.
+
+Generated artifacts:
+
+```text
+eval_runs/
+├── calculator_basic.trace.jsonl
+├── python_execution.trace.jsonl
+├── eval_results.json
+└── eval_report.md
+```
+
+Trace events include:
+
+- `llm_request` / `llm_response`
+- `tool_call` / `tool_result`
+- `final_response`
+
 ## Tests
 
 Run tests:
@@ -107,13 +141,17 @@ Run tests:
 pytest
 ```
 
-The tests use a fake LLM for the Agent loop, so they do not require a real API key.
+The tests use fake/scripted LLMs, so they do not require a real API key.
 
 ## Core Design
 
 ### Agent loop
 
 `mini_agent/agent.py` keeps the conversation state and repeatedly calls the LLM until it receives a final text response or reaches the iteration limit. When the LLM returns tool calls, the agent executes them through `ToolRegistry` and appends results back into the message history.
+
+When a `TraceRecorder` is attached, the loop records each LLM request/response,
+tool call, tool result, and final answer as JSONL events. This makes it easier
+to debug failed tool calls and build eval reports.
 
 ### Tool system
 
@@ -129,6 +167,12 @@ This mirrors OpenAI-compatible function calling while keeping the implementation
 ### LLM client
 
 `mini_agent/llm.py` wraps the OpenAI SDK and points it at DeepSeek's compatible endpoint. The wrapper normalizes model responses into a small `LLMResponse` dataclass so the rest of the project does not depend on SDK-specific response objects.
+
+### Eval runner
+
+`mini_agent/eval.py` loads JSONL tasks, runs them through the same Agent loop,
+checks expected tool usage and answer substrings, then emits a Markdown report
+plus machine-readable JSON results.
 
 ## Built-in Tools
 
@@ -146,6 +190,8 @@ This mirrors OpenAI-compatible function calling while keeping the implementation
 - How function calling maps to tool registration and tool result messages
 - Why the project uses async interfaces even though the demo is small
 - How iteration limits and structured error strings prevent simple failure loops
+- How JSONL traces help debug tool selection, tool failures, and loop behavior
+- How to turn prompt/task examples into repeatable Agent evals
 - Where production hardening would be added: filesystem sandboxing, user confirmation before writes, real search API, streaming output, persistent memory, and observability
 
 ## Security Notes

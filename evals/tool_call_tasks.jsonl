@@ -1,0 +1,2 @@
+{"id":"calculator_basic","prompt":"Calculate sqrt(144) + 1 using the calculator tool.","expected_tool":"calculator","tool_arguments":{"expression":"sqrt(144) + 1"},"expected_substrings":["13"]}
+{"id":"python_execution","prompt":"Use Python to print the first five Fibonacci numbers.","expected_tool":"execute_python","tool_arguments":{"code":"a, b = 0, 1\nseq = []\nfor _ in range(5):\n    seq.append(a)\n    a, b = b, a + b\nprint(seq)"},"expected_substrings":["[0, 1, 1, 2, 3]"]}
